@@ -5,12 +5,6 @@ from wtforms.validators import DataRequired, AnyOf, URL, ValidationError
 import re
 
 
-
-def facebook_url(self,field):
-    facebook_page='^.+www.facebook.com\/[^\/]+$'
-    match=re.search(facebook_page,field.data)
-    if not match:
-        raise ValidationError('Error,incorrect facebook link')
 class ShowForm(Form):
     artist_id = StringField(
         'artist_id'
@@ -122,7 +116,7 @@ class VenueForm(Form):
         ]
     )
     facebook_link = StringField(
-        'facebook_link', validators=[URL()]
+        'facebook_link', validators=[URL(), DataRequired()]
     )
     website_link = StringField(
         'website_link'

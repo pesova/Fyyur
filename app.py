@@ -14,6 +14,9 @@ from logging import Formatter, FileHandler
 from flask_wtf import Form
 from forms import *
 import sys
+import collections
+
+collections.Callable = collections.abc.Callable
 
 #----------------------------------------------------------------------------#
 # App Config.
@@ -107,28 +110,58 @@ def index():
 def venues():
   # TODO: replace with real venues data.
   #       num_upcoming_shows should be aggregated based on number of upcoming shows per venue.
-  data=[{
-    "city": "San Francisco",
-    "state": "CA",
-    "venues": [{
-      "id": 1,
-      "name": "The Musical Hop",
-      "num_upcoming_shows": 0,
-    }, {
-      "id": 3,
-      "name": "Park Square Live Music & Coffee",
-      "num_upcoming_shows": 1,
-    }]
-  }, {
-    "city": "New York",
-    "state": "NY",
-    "venues": [{
-      "id": 2,
-      "name": "The Dueling Pianos Bar",
-      "num_upcoming_shows": 0,
-    }]
-  }]
-  return render_template('pages/venues.html', areas=data);
+  data = []
+  venues = Venue.query.all()
+  for venue in venues:
+    shows = Show.query.filter_by(venue_id=venue.id).all()
+    upcoming_showws = []
+    past_shows = []
+    upcoming_shows_count = 0
+    past_shows_count = 0
+    for show in shows:
+      if show.start_time > datetime.now():
+        upcoming_shows_count += 1
+        upcoming_showws.append(show)
+
+      else:
+        past_shows_count += 1
+        past_shows.append(show)
+    data.append({
+      "id": venue.id,
+      "name": venue.name,
+      "num_upcoming_shows": upcoming_shows_count,
+      "num_past_shows": past_shows_count,
+      "upcoming_shows": upcoming_showws,
+      "past_shows": past_shows,
+      "city": venue.city,
+      "state": venue.state,
+      "address": venue.address
+    })
+    print(data)
+  return render_template('pages/venues.html', areas=data)
+
+  # data=[{
+  #   "city": "San Francisco",
+  #   "state": "CA",
+  #   "venues": [{
+  #     "id": 1,
+  #     "name": "The Musical Hop",
+  #     "num_upcoming_shows": 0,
+  #   }, {
+  #     "id": 3,
+  #     "name": "Park Square Live Music & Coffee",
+  #     "num_upcoming_shows": 1,
+  #   }]
+  # }, {
+  #   "city": "New York",
+  #   "state": "NY",
+  #   "venues": [{
+  #     "id": 2,
+  #     "name": "The Dueling Pianos Bar",
+  #     "num_upcoming_shows": 0,
+  #   }]
+  # }]
+  # return render_template('pages/venues.html', areas=data);
 
 @app.route('/venues/search', methods=['POST'])
 def search_venues():
@@ -239,7 +272,6 @@ def create_venue_form():
 
 @app.route('/venues/create', methods=['POST'])
 def create_venue_submission():
-  print('sdddddddddddddddddd')
 
   form = VenueForm(meta={'csrf': False})
   if form.validate_on_submit():
@@ -267,13 +299,10 @@ def create_venue_submission():
     finally:
       db.session.close()
   else:
-    # print(sys.exc_info())
     print(form.errors)
     flash('An error occurred. Venue ' + request.form['name'] + ' could not be listed ooo.', 'error')
   return render_template('pages/home.html')
 
-
-        # return redirect('/success')
   # TODO: insert form data as a new Venue record in the db, instead
 
 
@@ -474,10 +503,30 @@ def create_artist_submission():
   # TODO: insert form data as a new Venue record in the db, instead
   # TODO: modify data to be the data object returned from db insertion
 
-  # on successful db insert, flash success
-  flash('Artist ' + request.form['name'] + ' was successfully listed!')
-  # TODO: on unsuccessful db insert, flash an error instead.
-  # e.g., flash('An error occurred. Artist ' + data.name + ' could not be listed.')
+  form = ArtistForm(meta={'csrf': False})
+  if form.validate_on_submit():
+    try:
+      artist = Artist(
+        name = form.name.data,
+        city = form.city.data,
+        state = form.state.data,
+        phone = form.phone.data,
+        genres = form.genres.data,
+        image_link = form.image_link.data,
+        facebook_link = form.facebook_link.data,
+        seeking_venue = form.seeking_venue.data,
+        seeking_description = form.seeking_description.data
+      )
+      db.session.add(artist)
+      db.session.commit()
+      flash('Artist ' + request.form['name'] + ' was successfully listed!')
+    except:
+      db.session.rollback()
+      flash('An error occurred. Artist ' + request.form['name'] + ' could not be listed.')
+    finally:
+      db.session.close()
+  else:
+    flash('An error occurred. Artist ' + request.form['name'] + ' could not be listed.')
   return render_template('pages/home.html')
 
 
@@ -534,15 +583,30 @@ def create_shows():
 
 @app.route('/shows/create', methods=['POST'])
 def create_show_submission():
-  # called to create new shows in the db, upon submitting new show listing form
-  # TODO: insert form data as a new Show record in the db, instead
 
-  # on successful db insert, flash success
-  flash('Show was successfully listed!')
-  # TODO: on unsuccessful db insert, flash an error instead.
-  # e.g., flash('An error occurred. Show could not be listed.')
-  # see: http://flask.pocoo.org/docs/1.0/patterns/flashing/
+  form = ShowForm(meta={'csrf': False})
+  if form.validate_on_submit():
+    try:
+      show = Show(
+        artist_id = form.artist_id.data,
+        venue_id = form.venue_id.data,
+        start_time = form.start_time.data
+      )
+
+      db.session.add(show)
+      db.session.commit()
+      flash('Show was successfully listed!')
+    except:
+      db.session.rollback()
+      print(sys.exc_info())
+      flash('An error occurred. Show could not be listed.')
+    finally:
+      db.session.close()
+  else:
+    print(form.errors)
+    flash('something went wrong, try again' 'error')
   return render_template('pages/home.html')
+
 
 @app.errorhandler(404)
 def not_found_error(error):
