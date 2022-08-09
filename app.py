@@ -13,6 +13,8 @@ import logging
 from logging import Formatter, FileHandler
 from flask_wtf import Form
 from forms import *
+import sys
+
 #----------------------------------------------------------------------------#
 # App Config.
 #----------------------------------------------------------------------------#
@@ -22,9 +24,6 @@ moment = Moment(app)
 app.config.from_object('config')
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
-
-
-# TODO: connect to a local postgresql database
 
 #----------------------------------------------------------------------------#
 # Models.
@@ -50,8 +49,6 @@ class Venue(db.Model):
     def __repr__(self):
         return f'<Venue {self.id} {self.name}>'
 
-    # TODO: implement any missing fields, as a database migration using Flask-Migrate
-
 class Artist(db.Model):
     __tablename__ = 'artist'
 
@@ -66,12 +63,7 @@ class Artist(db.Model):
     website_link = db.Column(db.String(300))
     seeking_venue = db.Column(db.Boolean, nullable=False, default=True)
     seeking_description = db.Column(db.String(200))
-    shows = db.relationship('Show', backref='venue', lazy=True)
-
-    # TODO: implement any missing fields, as a database migration using Flask-Migrate
-
-# TODO Implement Show and Artist models, and complete all model relationships and properties, as a database migration.
-
+    shows = db.relationship('Show', backref='artist', lazy=True)
 
 class Show(db.Model):
   __tablename__ = 'show'
@@ -247,8 +239,46 @@ def create_venue_form():
 
 @app.route('/venues/create', methods=['POST'])
 def create_venue_submission():
+  print('sdddddddddddddddddd')
+
+  form = VenueForm(meta={'csrf': False})
+  if form.validate_on_submit():
+    try:
+      venue = Venue(
+        name=form.name.data,
+        city=form.city.data,
+        state=form.state.data,
+        address=form.address.data,
+        phone=form.phone.data,
+        genres=form.genres.data,
+        facebook_link=form.facebook_link.data,
+        image_link=form.image_link.data,
+        website_link=form.website_link.data,
+        seeking_talent=form.seeking_talent.data,
+        seeking_description=form.seeking_description.data
+      )
+      db.session.add(venue)
+      db.session.commit()
+      flash('Venue ' + request.form['name'] + ' was successfully listed!', 'success')
+    except:
+      db.session.rollback()
+      print(sys.exc_info())
+      flash('An error occurred. Venue ' + request.form['name'] + ' could not be listed.')
+    finally:
+      db.session.close()
+  else:
+    # print(sys.exc_info())
+    print(form.errors)
+    flash('An error occurred. Venue ' + request.form['name'] + ' could not be listed ooo.', 'error')
+  return render_template('pages/home.html')
+
+
+        # return redirect('/success')
   # TODO: insert form data as a new Venue record in the db, instead
+
+
   # TODO: modify data to be the data object returned from db insertion
+  
 
   # on successful db insert, flash success
   flash('Venue ' + request.form['name'] + ' was successfully listed!')

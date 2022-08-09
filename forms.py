@@ -1,8 +1,16 @@
 from datetime import datetime
 from flask_wtf import Form
 from wtforms import StringField, SelectField, SelectMultipleField, DateTimeField, BooleanField
-from wtforms.validators import DataRequired, AnyOf, URL
+from wtforms.validators import DataRequired, AnyOf, URL, ValidationError
+import re
 
+
+
+def facebook_url(self,field):
+    facebook_page='^.+www.facebook.com\/[^\/]+$'
+    match=re.search(facebook_page,field.data)
+    if not match:
+        raise ValidationError('Error,incorrect facebook link')
 class ShowForm(Form):
     artist_id = StringField(
         'artist_id'
@@ -125,6 +133,12 @@ class VenueForm(Form):
     seeking_description = StringField(
         'seeking_description'
     )
+
+    def validate_facebook_link(self,field):
+        facebook_page='^.+www.facebook.com\/[^\/]+$'
+        match=re.search(facebook_page,field.data)
+        if not match:
+            raise ValidationError('Error,incorrect facebook link')
 
 
 
