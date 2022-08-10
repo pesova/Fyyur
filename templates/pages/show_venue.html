@@ -75,7 +75,37 @@
 	</div>
 </section>
 
-<a href="/venues/{{ venue.id }}/edit"><button class="btn btn-primary btn-lg">Edit</button></a>
+<div class="row">
+	<div  class="col-sm-2">
+		<a  href="/venues/{{ venue.id }}/edit">
+			<button class="btn btn-primary btn-lg">Edit</button>
+		</a>
+	</div>
+
+	<!-- a delete button to delete venue -->
+	<form class="col-sm-2" id="form-delete">
+		<input type="hidden" id="venue_id" value="{{ venue.id }}">
+		<button class="btn btn-danger btn-lg">Delete</button>
+	</form>
+</div>
+
+
+<script>
+    document.getElementById("form-delete").onsubmit = function (e) {
+        e.preventDefault();
+		console.log('here1');
+        const venueId = document.getElementById('venue_id').value;
+
+		console.log('here2');
+        fetch(`/venues/${venueId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        }).then(() => window.location.href = '/')
+		  .catch(err => console.log(err));
+    }
+</script>
 
 {% endblock %}
 

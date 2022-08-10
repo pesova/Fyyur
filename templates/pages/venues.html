@@ -1,11 +1,9 @@
 {% extends 'layouts/main.html' %} 
 {% block title %}Fyyur | Venues{% endblock %} 
 {% block content %} 
-    {% for area in areas %}
-
-        <h3>{{ area.city }}, {{ area.state }}</h3>
+    {% for venue in areas %}
+        <h3>{{ venue.city }}, {{ venue.state }}</h3>
         <ul class="items">
-            {% for venue in area.venues %}
             <li>
                 <a href="/venues/{{ venue.id }}">
                     <i class="fas fa-music"></i>
@@ -14,30 +12,7 @@
                     </div>
                 </a>
             </li>
-            {% endfor %}
         </ul>
-
-        <div>
-            <h3>Upcoming Shows</h3>
-            
-        </div>
-
-        <!-- <div class="area">
-            <h3>{{ area.city }}, {{ area.state }}</h3>
-            <ul class="items">
-                {% for venue in area.venues %}
-                <li>
-                    <a href="/venues/{{ venue.id }}">
-                        <i class="fas fa-music"></i>
-                        <div class="item">
-                            <h5>{{ venue.name }}</h5>
-                        </div>
-                    </a>
-                </li>
-                {% endfor %}
-            </ul>
-        </div> -->
-
 
 
     {% endfor %} 
