@@ -100,7 +100,10 @@ app.jinja_env.filters['datetime'] = format_datetime
 
 @app.route('/')
 def index():
-  return render_template('pages/home.html')
+  # Show Recent Listed Artists and Recently Listed Venues
+  recent_artists = Artist.query.order_by(Artist.id.desc()).limit(5).all()
+  recent_venues = Venue.query.order_by(Venue.id.desc()).limit(5).all()
+  return render_template('pages/home.html', recent_artists=recent_artists, recent_venues=recent_venues)
 
 
 #  Venues
@@ -133,23 +136,33 @@ def venues():
 
 @app.route('/venues/search', methods=['POST'])
 def search_venues():
-  # TODO: implement search on artists with partial string search. Ensure it is case-insensitive.
   # seach for Hop should return "The Musical Hop".
   # search for "Music" should return "The Musical Hop" and "Park Square Live Music & Coffee"
-  response={
-    "count": 1,
-    "data": [{
-      "id": 2,
-      "name": "The Dueling Pianos Bar",
-      "num_upcoming_shows": 0,
-    }]
-  }
+  response = {}
+  search_term = request.form.get('search_term', '')
+  venues = Venue.query.filter(Venue.name.ilike(f'%{search_term}%')).all()
+  response['count'] = len(venues)
+  response['data'] = []
+  for venue in venues:
+    shows = Show.query.filter_by(venue_id=venue.id).all()
+    upcoming_shows_count = 0
+    past_shows_count = 0
+    for show in shows:
+      if show.start_time > datetime.now():
+        upcoming_shows_count += 1
+      else:
+        past_shows_count += 1
+    response['data'].append({
+      "id": venue.id,
+      "name": venue.name,
+      "num_upcoming_shows": upcoming_shows_count,
+      "num_past_shows": past_shows_count,
+    })
   return render_template('pages/search_venues.html', results=response, search_term=request.form.get('search_term', ''))
 
 @app.route('/venues/<int:venue_id>')
 def show_venue(venue_id):
   # shows the venue page with the given venue_id
-  # TODO: replace with real venue data from the venues table, using venue_id
   data = Venue.query.get(venue_id)
   shows = Show.query.filter_by(venue_id=venue_id).all()
   past_shows = []
@@ -228,7 +241,7 @@ def create_venue_submission():
   else:
     print(form.errors)
     flash('An error occurred. Venue ' + request.form['name'] + ' could not be listed ooo.', 'error')
-  return render_template('pages/home.html')
+  return redirect(url_for('index'))
 
 
 @app.route('/venues/<venue_id>', methods=['DELETE'])
@@ -243,7 +256,7 @@ def delete_venue(venue_id):
     flash('An error occurred. Venue ' + delete_venue.name + ' could not be deleted.')
   finally:
     db.session.close()
-  return render_template('pages/home.html')
+  return redirect(url_for('index'))
 
 #  Artists
 #  ----------------------------------------------------------------
@@ -270,18 +283,20 @@ def artists():
 
 @app.route('/artists/search', methods=['POST'])
 def search_artists():
-  # TODO: implement search on artists with partial string search. Ensure it is case-insensitive.
   # seach for "A" should return "Guns N Petals", "Matt Quevado", and "The Wild Sax Band".
   # search for "band" should return "The Wild Sax Band".
-  response={
-    "count": 1,
-    "data": [{
-      "id": 4,
-      "name": "Guns N Petals",
-      "num_upcoming_shows": 0,
-    }]
-  }
-  return render_template('pages/search_artists.html', results=response, search_term=request.form.get('search_term', ''))
+  response = {}
+  search_term = request.form.get('search_term', '')
+  artists = Artist.query.filter(Artist.name.ilike('%' + search_term + '%')).all()
+  response['count'] = len(artists)
+  response['data'] = []
+  for artist in artists:
+    response['data'].append({
+      "id": artist.id,
+      "name": artist.name,
+      "num_upcoming_shows": len(artist.shows)
+    })
+  return render_template('pages/search_artists.html', results=response, search_term=search_term)
 
 @app.route('/artists/<int:artist_id>')
 def show_artist(artist_id):
@@ -438,7 +453,7 @@ def create_artist_submission():
       db.session.close()
   else:
     flash('An error occurred. Artist ' + request.form['name'] + ' could not be listed.')
-  return render_template('pages/home.html')
+  return redirect(url_for('index'))
 
 
 #  Shows
@@ -489,7 +504,7 @@ def create_show_submission():
   else:
     print(form.errors)
     flash('something went wrong, try again', 'error')
-  return render_template('pages/home.html')
+  return redirect(url_for('index'))
 
 
 @app.errorhandler(404)
