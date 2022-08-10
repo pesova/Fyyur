@@ -93,10 +93,8 @@
 <script>
     document.getElementById("form-delete").onsubmit = function (e) {
         e.preventDefault();
-		console.log('here1');
         const venueId = document.getElementById('venue_id').value;
 
-		console.log('here2');
         fetch(`/venues/${venueId}`, {
             method: 'DELETE',
             headers: {
