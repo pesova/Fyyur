@@ -108,7 +108,8 @@ def search_venues():
 def show_venue(venue_id):
   # shows the venue page with the given venue_id
   data = Venue.query.get(venue_id)
-  shows = Show.query.filter_by(venue_id=venue_id).all()
+  shows = Show.query.join(Venue, Venue.id == Show.venue_id).filter(Venue.id == venue_id).all()
+
   past_shows = []
   upcoming_shows = []
   for show in shows:
